@@ -1,0 +1,80 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Concierge</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@300;400&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#161311;--ink:#f3ebdf;--gold:#d8c19a;--mut:#a5988a;--line:#3a332c}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--ink);font:300 15px/1.55 Inter,system-ui,sans-serif;letter-spacing:.03em;overflow:hidden}
+h1,h2,.price{font-family:"Cormorant Garamond",Georgia,serif;font-weight:500;letter-spacing:.01em}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.view{display:none;height:100dvh;overflow-y:auto}.view.on{display:block}
+#feed{scroll-snap-type:y mandatory}
+article{position:relative;height:100dvh;scroll-snap-align:start;background:radial-gradient(120% 70% at 30% 20%,#3a2f25,#161311 70%)}
+article video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(22,19,17,.55),transparent 22%,transparent 42%,rgba(22,19,17,.96))}
+.info{position:absolute;left:24px;right:24px;bottom:calc(92px + env(safe-area-inset-bottom,0px))}
+.info h2{font-size:34px;line-height:1.1}
+.price{font-size:44px;color:var(--gold);line-height:1.15;margin:4px 0 12px}.price small{font-size:18px;color:var(--mut)}
+.tags{display:flex;flex-wrap:wrap;gap:6px 14px;opacity:.85;margin-bottom:8px}
+.note{color:var(--mut);margin-bottom:16px}
+.cta{width:100%;padding:15px;border:1px solid var(--gold);color:var(--gold);border-radius:2px;transition:.2s}
+.cta:active{background:var(--gold);color:var(--bg)}.cta:disabled{opacity:.4}
+.badge{display:inline-block;margin-bottom:8px;color:var(--gold);font-style:italic}
+.chips{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);left:0;right:0;z-index:5;display:flex;justify-content:center;gap:22px}
+.chips b,.opt{font-weight:400;cursor:pointer}
+.chips b{opacity:.6;padding:6px 0;border-bottom:1px solid transparent;text-shadow:0 1px 8px #000}.chips b.on{opacity:1;border-color:var(--gold)}
+.page{padding:calc(env(safe-area-inset-top,0px) + 40px) 24px 120px;max-width:520px;margin:auto}
+.page h1{font-size:38px;line-height:1.1;margin-bottom:8px}.page>p{color:var(--mut);margin-bottom:28px}
+.q{margin-bottom:26px}.q h3{font-weight:400;color:var(--mut);margin-bottom:10px}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{padding:10px 16px;border:1px solid var(--line);border-radius:2px}.opt.on{border-color:var(--gold);color:var(--gold)}
+textarea{width:100%;min-height:90px;background:none;border:1px solid var(--line);border-radius:2px;color:var(--ink);padding:12px;font:inherit}
+.av{width:132px;height:132px;border-radius:50%;object-fit:cover;margin-bottom:20px;border:1px solid var(--gold)}
+.links{display:flex;flex-direction:column;gap:10px;margin-top:28px}
+.empty{height:100dvh;display:flex;flex-direction:column;justify-content:center;padding:24px;gap:14px}.empty h2{font-size:36px}.empty p{color:var(--mut)}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:9;display:flex;justify-content:space-around;padding:14px 0 calc(14px + env(safe-area-inset-bottom,0px));background:linear-gradient(transparent,rgba(22,19,17,.96) 45%)}
+nav button{color:var(--mut);padding:4px 12px}nav button.on{color:var(--gold)}
+</style></head><body>
+<main id="feed" class="view on"></main>
+<section id="quiz" class="view"></section>
+<section id="about" class="view"></section>
+<nav><button data-go="feed" class="on">Лента</button><button data-go="quiz">Подбор</button><button data-go="about">Обо мне</button></nav>
+<script>
+const tg=Telegram.WebApp;tg.ready();tg.expand();try{tg.setHeaderColor('#161311');tg.setBackgroundColor('#161311')}catch(e){}
+const $=s=>document.querySelector(s),K={rent:'Аренда',sale:'Продажа',off:'Off-Market'};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const BUD={'Долгосрочная аренда':['до $1 500','$1 500–3 000','от $3 000'],'Покупка':['до $150 000','$150 000–300 000','от $300 000']};
+let D,kind='rent',Q={goal:'Долгосрочная аренда'};
+const chat=text=>tg.openTelegramLink(`https://t.me/${D.contact}?text=${encodeURIComponent(text)}`);
+function feed(){const l=D.objects.filter(o=>o.kind===kind);
+$('#feed').innerHTML=`<div class=chips>${Object.entries(K).map(([k,t])=>`<b data-k=${k} class="${k===kind?'on':''}">${t}</b>`).join('')}</div>`+
+(l.length?l.map((o,i)=>`<article>${o.video?`<video src="${esc(o.video)}#t=0.1" loop muted playsinline preload=metadata></video>`:''}<div class=shade></div><div class=info>
+${o.status!=='active'?`<span class=badge>${o.status==='booked'?'Забронировано':'Недоступно'}</span>`:''}
+<h2>${esc(o.city)}</h2><div class=price>$${o.price.toLocaleString('en-US')}${o.kind==='rent'?' <small>в месяц</small>':''}</div>
+<div class=tags>${o.tags.map(t=>`<span>${esc(t)}</span>`).join('')}</div>${o.note?`<p class=note>${esc(o.note)}</p>`:''}
+<button class=cta data-o="${D.objects.indexOf(o)}" ${o.status!=='active'?'disabled':''}>Запросить приватный показ</button></div></article>`).join('')
+:`<div class=empty><h2>${kind==='off'?'Закрытая база':'Скоро появятся'}</h2><p>${kind==='off'?'Объекты не для публичного показа. Оставьте запрос, и я подберу лично.':'Оставьте запрос, и я подберу дом под вас.'}</p><button class=cta data-go=quiz>Оставить запрос на подбор</button></div>`);
+const io=new IntersectionObserver(es=>es.forEach(e=>{const v=e.target.querySelector('video');if(v)e.isIntersecting?v.play().catch(()=>{}):v.pause()}),{threshold:.6});
+document.querySelectorAll('article').forEach(a=>io.observe(a))}
+function quiz(){const O=(k,a)=>`<div class=opts>${a.map(x=>`<span class="opt ${Q[k]===x?'on':''}" data-q=${k} data-v="${x}">${x}</span>`).join('')}</div>`;
+$('#quiz').innerHTML=`<div class=page><h1>Персональный подбор</h1><p>Ответьте на несколько вопросов, и я подготовлю варианты, в том числе закрытые.</p>
+<div class=q><h3>Что вы ищете</h3>${O('goal',Object.keys(BUD))}</div><div class=q><h3>Бюджет</h3>${O('budget',BUD[Q.goal])}</div>
+<div class=q><h3>Где</h3>${O('city',['Николаев','Одесса','Другое'])}</div><div class=q><h3>Что для вас важно</h3><textarea id=w placeholder="Бассейн, охрана, газовое отопление, срок переезда"></textarea></div>
+<button class=cta id=send>Открыть чат с запросом</button></div>`}
+function about(){const p=D.profile;$('#about').innerHTML=`<div class=page>${p.avatar?`<img class=av src="${esc(p.avatar)}">`:''}<h1>${esc(p.name)}</h1><p>${esc(p.bio)}</p>
+<div class=links>${p.links.map(l=>`<button class=cta data-ext="${esc(l.url)}">${esc(l.title)}</button>`).join('')}<button class=cta data-msg=1>Написать в Telegram</button></div></div>`}
+function go(v){document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id===v));document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.go===v));
+if(v==='quiz')quiz();if(v==='about')about();if(v==='feed')feed()}
+document.addEventListener('click',e=>{const t=e.target,g=t.closest('[data-go]');
+if(g)return go(g.dataset.go);if(t.dataset.k){kind=t.dataset.k;return feed()}
+if(t.dataset.q){Q[t.dataset.q]=t.dataset.v;if(t.dataset.q==='goal')delete Q.budget;return quiz()}
+if(t.dataset.ext)return t.dataset.ext.startsWith('https://t.me/')?tg.openTelegramLink(t.dataset.ext):tg.openLink(t.dataset.ext);
+if(t.dataset.msg)return chat('Здравствуйте!');
+if(t.dataset.o){const o=D.objects[t.dataset.o];tg.HapticFeedback.impactOccurred('light');return chat(`Здравствуйте! Хочу запросить приватный показ: ${K[o.kind]}, ${o.city}, $${o.price.toLocaleString('en-US')}.`)}
+if(t.id==='send'){if(!Q.budget||!Q.city)return tg.showAlert('Выберите бюджет и город.');const w=$('#w').value.trim();
+return chat(`Запрос на подбор VIP\nЦель: ${Q.goal}\nБюджет: ${Q.budget}\nЛокация: ${Q.city}${w?'\nПожелания: '+w:''}`)}
+const a=t.closest('article'),v=a&&a.querySelector('video');if(v&&!t.closest('button'))v.muted=!v.muted});
+fetch('data.json',{cache:'no-cache'}).then(r=>r.json()).then(d=>{D=d;feed()});
+</script></body></html>
