@@ -1,0 +1,15 @@
+{
+  "realtor": {
+    "name": "Риелтор Малютина",
+    "contact": "https://t.me/username"
+  },
+  "objects": [
+    {
+      "id": "1",
+      "title": "Уютная квартира в центре",
+      "price": "$50,000",
+      "description": "Отличная квартира с готовым ремонтом.",
+      "image": "media/flat1.jpg"
+    }
+  ]
+}
